@@ -1,5 +1,6 @@
 package moonblade.rlock.views;
 
+import android.content.Intent;
 import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -10,7 +11,16 @@ import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.TextView;
+
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -28,19 +38,41 @@ import moonblade.rlock.controllers.AsyncResponse;
 import moonblade.rlock.models.Passkey;
 import moonblade.rlock.models.User;
 
-public class Number extends AppCompatActivity {
+public class Number extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
     FloatingActionButton fab;
+    SignInButton signIn;
     Toolbar toolbar;
-    TextView passkey;
+    TextView passkey,name;
     private Map<String, Object> params;
+    private static final int RC_SIGN_IN = 9001;
+    GoogleSignInOptions gso;
+    GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_number);
         linkElements();
+        setListeners();
         setCurrentKey();
         getPasskey();
+    }
+
+    private void setListeners() {
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        });
+        signIn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+                startActivityForResult(signInIntent, RC_SIGN_IN);
+            }
+        });
     }
 
     private void setCurrentKey() {
@@ -53,19 +85,94 @@ public class Number extends AppCompatActivity {
     }
 
     private void linkElements() {
-
+        signIn = (SignInButton) findViewById(R.id.sign_in_button);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         passkey = (TextView) findViewById(R.id.passkey);
         fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setVisibility(View.GONE);
-        fab.setOnClickListener(new View.OnClickListener() {
+
+        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        if (result.isSuccess()) {
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+            User user = new User(acct);
+            userLogin(user);
+            updateUI(true);
+        } else {
+            // Signed out, show unauthenticated UI.
+            updateUI(false);
+        }
+    }
+
+    private void userLogin(User user) {
+        Map<String,Object> params =new LinkedHashMap<>();
+        params.put(user.id);
+        params.put(user.name);
+        String url = GlobalVariables.serverUrl + "users/login";
+        ApiCalls userlogin = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
             @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            public void ProcessFinish(Object output) {
+                try{
+                    JSONObject serverResponse = new JSONObject(output.toString());
+                    if (serverResponse.getInt("status") == 1) {
+                        User user = new User(new JSONObject(serverResponse.getString("message")));
+                        try {
+                            User.deleteAll(User.class);
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        } catch (SQLiteException e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            user.save();
+                            name.setText(user.name);
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        } catch (SQLiteException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        Snackbar.make(name, serverResponse.getString("message"), Snackbar.LENGTH_LONG).show();
+                        name.setVisibility(View.GONE);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
-        });
+        })
+    }
+
+    private void updateUI(boolean b) {
+        if(b)
+        {
+            signIn.setVisibility(View.GONE);
+        }
+        else
+        {
+            signIn.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -143,5 +250,10 @@ public class Number extends AppCompatActivity {
                 params.put("id",user.id);
         }
         return params;
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Snackbar.make(passkey, "Please check network Connection", Snackbar.LENGTH_LONG).show();
     }
 }

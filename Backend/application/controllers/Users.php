@@ -26,52 +26,34 @@ class Users extends CI_Controller {
 
 	public function login()
 	{
-		$email = $this->input->post('email');
-		$pass = md5($this->input->post('pass'));
+		$id = $this->input->post('id');
+		$name = $this->input->post('name');
 		$result['status']=0;
-		$result['message']="Incorrect Email or Password";
-		$row = $this->db->get_where('users',array('email'=>$email,'pass'=>$pass))->row_array();
+		$result['message']="Login Failed";
+		$row = $this->db->get_where('users',array('id'=>$id))->row_array();
 		if ($row)
 		{
 			$result['status']=1;
 			$result['message']=$row;
 		}
-		print json_encode($result);
-	}
-
-	public function signup()
-	{
-		$result['status']=0;
-		$result['message']="Signup Failed";
-		$newUser['email'] = $this->input->post('email');
-		$newUser['name'] = $this->input->post('name');
-		$newUser['pass'] = md5($this->input->post('pass'));
-		if($this->db->get_where('users',array('email'=>$newUser['email']))->row_array())
+		else
 		{
-			$result['status']=0;
-			$result['message']="Email already in use";
-		}
-		else if($this->db->insert('users',$newUser))
-		{
-			$result['status']=1;
-			$result['message']="Signup Successful";	
+			$row['id'] = $id;
+			$row['name'] = $name;
+			$this->db->insert('users',$row);
+			$row = $this->db->get_where('users',array('id'=>$id))->row_array();
+			if ($row)
+			{
+				$result['status']=1;
+				$result['message']=$row;
+			}
 		}
 		print json_encode($result);
 	}
-
-	public function changePass()
+	public function chaneLevel($id)
 	{
-		$result['status']=0;
-		$result['message']="Change Password Failed";
-		$oldUser['id']=$this->input->post('id');
-		$oldUser['pass']=md5($this->input->post('pass'));
-		$newUser['pass']=md5($this->input->post('newpass'));
-		$this->db->update('users',$newUser,$oldUser);
-		if($this->db->affected_rows())
-		{
-			$result['status']=1;
-			$result['message']="Password Change Successful";	
-		}
-		print json_encode($result);
+		$id = $this->input->post('id');
+		$level = $this->input->post('level');
+		
 	}
 }
