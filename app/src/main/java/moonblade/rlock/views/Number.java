@@ -1,4 +1,4 @@
-package moonblade.rlock;
+package moonblade.rlock.views;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -8,17 +8,36 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import moonblade.rlock.GlobalVariables;
+import moonblade.rlock.R;
+import moonblade.rlock.controllers.ApiCalls;
+import moonblade.rlock.controllers.AsyncResponse;
+import moonblade.rlock.models.User;
 
 public class Number extends AppCompatActivity {
-
+    FloatingActionButton fab;
+    Toolbar toolbar;
+    TextView passkey;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_number);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        linkElements();
+        getPasskey();
+    }
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+    private void linkElements() {
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        passkey = (TextView) findViewById(R.id.passkey);
+        fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setVisibility(View.GONE);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -48,5 +67,25 @@ public class Number extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void getPasskey() {
+        try {
+            Map<String, Object> params = new LinkedHashMap<>();
+            params.put("id", User.findById(User.class, (long) 1).id);
+            String url = GlobalVariables.serverUrl + "keys/viewcurrent";
+            ApiCalls viewCurrent = new ApiCalls(this, params, url, new AsyncResponse() {
+                @Override
+                public void ProcessFinish(Object output) {
+
+                }
+            });
+            viewCurrent.execute();
+        }
+        catch (NullPointerException e)
+        {
+            Snackbar.make(passkey,"Please log in",Snackbar.LENGTH_LONG).show();
+        }
+
     }
 }

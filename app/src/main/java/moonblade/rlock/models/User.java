@@ -1,4 +1,6 @@
-package moonblade.rlock;
+package moonblade.rlock.models;
+
+import com.orm.SugarRecord;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -6,11 +8,14 @@ import org.json.JSONObject;
 /**
  * Created by moonblade on 14/11/15.
  */
-public class User {
+public class User extends SugarRecord<User> {
+    public int id;
     public String name;
     public String email;
     public String pass;
-    private int level,id;
+    private int level;
+
+    public User(){}
 
     public User(int id, String name, String email, String pass, int level)
     {
