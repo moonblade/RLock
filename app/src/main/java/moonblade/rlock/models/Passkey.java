@@ -13,9 +13,9 @@ import java.util.Date;
  * Created by moonblade on 14/11/15.
  */
 public class Passkey extends SugarRecord<Passkey> {
-    String key;
-    Date date;
-    String name;
+    public String key;
+    public Date date;
+    public String name;
 
     public Passkey() {
     }
@@ -27,7 +27,7 @@ public class Passkey extends SugarRecord<Passkey> {
     }
 
     public Passkey(JSONObject passkey) throws JSONException {
-        this.key = passkey.getString("key");
+        this.key = passkey.getString("passkey");
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         try {
             this.date = format.parse(passkey.getString("date"));

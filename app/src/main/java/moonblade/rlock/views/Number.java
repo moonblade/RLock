@@ -1,34 +1,55 @@
 package moonblade.rlock.views;
 
+import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import moonblade.rlock.GlobalVariables;
 import moonblade.rlock.R;
 import moonblade.rlock.controllers.ApiCalls;
 import moonblade.rlock.controllers.AsyncResponse;
+import moonblade.rlock.models.Passkey;
 import moonblade.rlock.models.User;
 
 public class Number extends AppCompatActivity {
     FloatingActionButton fab;
     Toolbar toolbar;
     TextView passkey;
+    private Map<String, Object> params;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_number);
         linkElements();
+        setCurrentKey();
         getPasskey();
+    }
+
+    private void setCurrentKey() {
+        Iterator<Passkey> keys = Passkey.findAll(Passkey.class);
+        while (keys.hasNext()) {
+            Passkey key = keys.next();
+            if (!keys.hasNext())
+                passkey.setText(key.key);
+        }
     }
 
     private void linkElements() {
@@ -71,21 +92,56 @@ public class Number extends AppCompatActivity {
 
     public void getPasskey() {
         try {
-            Map<String, Object> params = new LinkedHashMap<>();
-            params.put("id", User.findById(User.class, (long) 1).id);
+            final Map<String, Object> params = getParams();
             String url = GlobalVariables.serverUrl + "keys/viewcurrent";
             ApiCalls viewCurrent = new ApiCalls(this, params, url, new AsyncResponse() {
                 @Override
                 public void ProcessFinish(Object output) {
-
+                    try {
+                        JSONObject serverResponse = new JSONObject(output.toString());
+                        if (serverResponse.getInt("status") == 1) {
+                            Passkey key = new Passkey(new JSONObject(serverResponse.getString("message")));
+                            try {
+                                Passkey.deleteAll(Passkey.class);
+                            } catch (NullPointerException e) {
+                                e.printStackTrace();
+                            } catch (SQLiteException e) {
+                                e.printStackTrace();
+                            }
+                            try {
+                                key.save();
+                                passkey.setText(key.key);
+                            } catch (NullPointerException e) {
+                                e.printStackTrace();
+                            } catch (SQLiteException e) {
+                                e.printStackTrace();
+                            }
+                        } else {
+                            Snackbar.make(passkey, serverResponse.getString("message"), Snackbar.LENGTH_LONG).show();
+                            passkey.setText("XXXX");
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             viewCurrent.execute();
-        }
-        catch (NullPointerException e)
-        {
-            Snackbar.make(passkey,"Please log in",Snackbar.LENGTH_LONG).show();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+            Snackbar.make(passkey, "Please log in", Snackbar.LENGTH_LONG).show();
+            passkey.setText("XXXX");
         }
 
+    }
+
+    public Map<String, Object> getParams() {
+        Map<String, Object> params = new LinkedHashMap<>();
+        Iterator<User> users = User.findAll(User.class);
+        while (users.hasNext()) {
+            User user = users.next();
+            if (!users.hasNext())
+                params.put("id",user.id);
+        }
+        return params;
     }
 }
