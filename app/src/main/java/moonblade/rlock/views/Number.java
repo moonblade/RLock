@@ -85,6 +85,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     }
 
     private void linkElements() {
+        name = (TextView) findViewById(R.id.name);
         signIn = (SignInButton) findViewById(R.id.sign_in_button);
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -128,8 +129,8 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
 
     private void userLogin(User user) {
         Map<String,Object> params =new LinkedHashMap<>();
-        params.put(user.id);
-        params.put(user.name);
+        params.put("id",user.id);
+        params.put("name",user.name);
         String url = GlobalVariables.serverUrl + "users/login";
         ApiCalls userlogin = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
             @Override
@@ -161,7 +162,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                     e.printStackTrace();
                 }
             }
-        })
+        });
     }
 
     private void updateUI(boolean b) {
