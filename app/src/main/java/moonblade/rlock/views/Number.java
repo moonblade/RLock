@@ -1,5 +1,7 @@
 package moonblade.rlock.views;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.sqlite.SQLiteException;
 import android.os.Bundle;
@@ -8,10 +10,11 @@ import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import com.google.android.gms.auth.api.Auth;
@@ -25,11 +28,9 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import moonblade.rlock.GlobalVariables;
 import moonblade.rlock.R;
@@ -38,15 +39,17 @@ import moonblade.rlock.controllers.AsyncResponse;
 import moonblade.rlock.models.Passkey;
 import moonblade.rlock.models.User;
 
-public class Number extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener{
+public class Number extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
     FloatingActionButton fab;
     SignInButton signIn;
     Toolbar toolbar;
-    TextView passkey,name;
+    TextView passkey, name;
     private Map<String, Object> params;
     private static final int RC_SIGN_IN = 9001;
     GoogleSignInOptions gso;
     GoogleApiClient mGoogleApiClient;
+    Menu menu;
+    AlertDialog.Builder builder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,8 +65,25 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+
+                LayoutInflater inflater = getLayoutInflater();
+                View editCode = inflater.inflate(R.layout.dialog_number, null);
+                final EditText code = (EditText) editCode.findViewById(R.id.editNumber);
+                builder.setTitle("Change Number");
+                builder.setView(editCode)
+                        .setPositiveButton("Change", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                changeCode(code.getText().toString());
+                            }
+                        })
+                        .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialogInterface, int i) {
+                                dialogInterface.cancel();
+                            }
+                        });
+                builder.create().show();
             }
         });
         signIn.setOnClickListener(new View.OnClickListener() {
@@ -73,6 +93,44 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                 startActivityForResult(signInIntent, RC_SIGN_IN);
             }
         });
+    }
+
+    private void changeCode(String code) {
+        Map<String,Object> params = getParams();
+        params.put("code",code);
+        String url = GlobalVariables.serverUrl + "keys/changecode";
+        ApiCalls changeCode = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
+            @Override
+            public void ProcessFinish(Object output) {
+                try {
+                    JSONObject serverResponse = new JSONObject(output.toString());
+                    if (serverResponse.getInt("status") == 1) {
+                        Passkey key = new Passkey(new JSONObject(serverResponse.getString("message")));
+                        try {
+                            Passkey.deleteAll(Passkey.class);
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        } catch (SQLiteException e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            key.save();
+                            passkey.setText(key.key);
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        } catch (SQLiteException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        Snackbar.make(passkey, serverResponse.getString("message"), Snackbar.LENGTH_LONG).show();
+                        passkey.setText("XXXX");
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        changeCode.execute();
     }
 
     private void setCurrentKey() {
@@ -91,7 +149,6 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         setSupportActionBar(toolbar);
         passkey = (TextView) findViewById(R.id.passkey);
         fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setVisibility(View.GONE);
 
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -101,6 +158,9 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                 .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
                 .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
+
+        builder = new AlertDialog.Builder(this);
+
     }
 
     @Override
@@ -128,14 +188,14 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     }
 
     private void userLogin(User user) {
-        Map<String,Object> params =new LinkedHashMap<>();
-        params.put("id",user.id);
-        params.put("name",user.name);
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("id", user.uid);
+        params.put("name", user.name);
         String url = GlobalVariables.serverUrl + "users/login";
         ApiCalls userlogin = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
             @Override
             public void ProcessFinish(Object output) {
-                try{
+                try {
                     JSONObject serverResponse = new JSONObject(output.toString());
                     if (serverResponse.getInt("status") == 1) {
                         User user = new User(new JSONObject(serverResponse.getString("message")));
@@ -148,6 +208,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                         }
                         try {
                             user.save();
+                            getPasskey();
                             name.setText(user.name);
                         } catch (NullPointerException e) {
                             e.printStackTrace();
@@ -163,16 +224,18 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                 }
             }
         });
+        userlogin.execute();
     }
 
     private void updateUI(boolean b) {
-        if(b)
-        {
+        if (b) {
             signIn.setVisibility(View.GONE);
-        }
-        else
-        {
+            menu.findItem(R.id.action_logout).setVisible(true);
+            fab.setVisibility(View.VISIBLE);
+        } else {
             signIn.setVisibility(View.VISIBLE);
+            menu.findItem(R.id.action_logout).setVisible(false);
+            fab.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -180,6 +243,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_number, menu);
+        this.menu = menu;
         return true;
     }
 
@@ -193,6 +257,11 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
+        }
+
+        if (id == R.id.action_logout) {
+            User.deleteAll(User.class);
+            updateUI(false);
         }
 
         return super.onOptionsItemSelected(item);
@@ -245,10 +314,19 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     public Map<String, Object> getParams() {
         Map<String, Object> params = new LinkedHashMap<>();
         Iterator<User> users = User.findAll(User.class);
+        if (!users.hasNext()) {
+            updateUI(false);
+            throw new NullPointerException();
+        }
         while (users.hasNext()) {
             User user = users.next();
-            if (!users.hasNext())
-                params.put("id",user.id);
+            if (!users.hasNext()) {
+                name.setText(user.name);
+                Log.i("last user", user.uid + "");
+                Log.i("last user", user.name);
+                signIn.setVisibility(View.INVISIBLE);
+                params.put("id", user.uid + "");
+            }
         }
         return params;
     }

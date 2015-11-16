@@ -46,4 +46,24 @@ class Keys extends CI_Controller {
 		}
 		print json_encode($result);
 	}
+
+	public function changeCode()
+	{
+		$result['status']=0;
+		$result['message']="Failed";
+		$temp['id'] = $this->input->post('id');
+		$toSearch['id'] = $this->input->post('id');
+		$temp['passkey'] = $this->input->post('code');
+		if($this->db->get_where('users',$toSearch)->row_array()['level']>0)
+		{
+			$this->db->insert('passkeys', $temp);
+			$this->viewCurrent();
+		}
+		else
+		{
+			$result['status']=0;
+			$result['message']="Insufficient permission";
+			print json_encode($result);	
+		}
+	}
 }
