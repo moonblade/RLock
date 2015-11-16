@@ -50,10 +50,69 @@ class Users extends CI_Controller {
 		}
 		print json_encode($result);
 	}
-	public function chaneLevel($id)
+	public function changeLevel($id=0)
 	{
-		$id = $this->input->post('id');
-		$level = $this->input->post('level');
-		
+		$temp['id']=$id;
+		$result['status']=0;
+		$result['message']="Insufficient Permissions";
+		$toSearch['id'] = $this->input->post('id');
+		$toChange['level'] = $this->input->post('level');
+		$changerLevel = $this->db->get_where('users',$temp)->row_array()['level'];
+		$changeeLevel = $this->db->get_where('users',$toSearch)->row_array()['level'];
+		if($changerLevel>1)
+		{
+			$result['message']="Database Error";
+
+			if($changerLevel<$changeeLevel || $toChange['level']>$changerLevel)
+			{
+				$result['message']=$this->getResponse(rand());
+			}
+			else
+			{
+				$this->db->update('users',$toChange,$toSearch);
+				if($this->db->affected_rows())
+				{
+					$result['status']=1;
+					$result['message']="Access Changed";
+				}	
+			}
+		}
+		print json_encode($result);
+	}
+
+	public function viewUsers($id=0)
+	{
+		$result['status']=0;
+		$result['message']="Insufficient Permissions";
+		$toSearch['id']=$id;
+		if($this->db->get_where('users',$toSearch)->row_array()['level']>1)
+		{
+			$result['status']=1;
+			$this->db->order_by('level','DESC');
+			$this->db->order_by('name');
+			$query=$this->db->get('users');
+			$result['message']=$query->result();
+		}
+		print json_encode($result);
+	}
+
+	private function getResponse($value=0)
+	{
+		$nor=6;
+		switch($value%$nor)
+		{
+			case 0:
+				return "You really thought you could do that?";
+			case 1:
+				return "Someone ought to teach you some manners";
+			case 3:
+				return "Funny you should try that";
+			case 4:
+				return "Ha Ha Ha, I laugh at you";
+			case 5:
+				return "Why don't you take on someone your own size";
+			default:
+				return "You really thought you could do that?";
+		}
 	}
 }
