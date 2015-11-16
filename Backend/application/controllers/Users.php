@@ -63,7 +63,7 @@ class Users extends CI_Controller {
 		{
 			$result['message']="Database Error";
 
-			if($changerLevel<$changeeLevel || $toChange['level']>$changerLevel)
+			if($changerLevel<$changeeLevel || $toChange['level']>$changerLevel || $toChange['level']<0)
 			{
 				$result['message']=$this->getResponse(rand());
 			}
@@ -74,6 +74,10 @@ class Users extends CI_Controller {
 				{
 					$result['status']=1;
 					$result['message']="Access Changed";
+					if($toSearch['id']==$temp['id'])
+					{
+						$result['message']="You know you just demoted yourself, right?";
+					}
 				}	
 			}
 		}

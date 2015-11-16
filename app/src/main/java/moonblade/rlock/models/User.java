@@ -14,7 +14,7 @@ import org.json.JSONObject;
 public class User extends SugarRecord<User> {
     public String uid;
     public String name;
-    private int level;
+    public int level;
 
     public User(){}
 
@@ -26,9 +26,7 @@ public class User extends SugarRecord<User> {
     }
 
     public User(JSONObject user) throws JSONException {
-        Log.i("ID gotten is", user.getString("id"));
         this.uid = user.getString("id");
-        Log.i("ID saved is", uid);
         this.name = user.getString("name");
         this.level = user.getInt("level");
     }

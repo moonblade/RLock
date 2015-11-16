@@ -28,6 +28,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.text.SimpleDateFormat;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -43,7 +44,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     FloatingActionButton fab;
     SignInButton signIn;
     Toolbar toolbar;
-    TextView passkey, name;
+    TextView passkey,time, name;
     private Map<String, Object> params;
     private static final int RC_SIGN_IN = 9001;
     GoogleSignInOptions gso;
@@ -97,7 +98,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
 
     private void changeCode(String code) {
         Map<String,Object> params = getParams();
-        params.put("code",code);
+        params.put("code", code);
         String url = GlobalVariables.serverUrl + "keys/changecode";
         ApiCalls changeCode = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
             @Override
@@ -116,6 +117,8 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                         try {
                             key.save();
                             passkey.setText(key.key);
+                            SimpleDateFormat format = new SimpleDateFormat("dd MMMM");
+                            time.setText("Last Modified: " + format.format(key.date) + " by " + key.name);
                         } catch (NullPointerException e) {
                             e.printStackTrace();
                         } catch (SQLiteException e) {
@@ -135,6 +138,10 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
 
     private void setCurrentKey() {
         Iterator<Passkey> keys = Passkey.findAll(Passkey.class);
+        if(!keys.hasNext())
+        {
+            updateUI(false);
+        }
         while (keys.hasNext()) {
             Passkey key = keys.next();
             if (!keys.hasNext())
@@ -148,6 +155,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         passkey = (TextView) findViewById(R.id.passkey);
+        time = (TextView) findViewById(R.id.time);
         fab = (FloatingActionButton) findViewById(R.id.fab);
 
         gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
@@ -230,12 +238,32 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     private void updateUI(boolean b) {
         if (b) {
             signIn.setVisibility(View.GONE);
-            menu.findItem(R.id.action_logout).setVisible(true);
+            try{
+                menu.findItem(R.id.action_logout).setVisible(true);
+                if(GlobalVariables.user.level>2)
+                {
+                    menu.findItem(R.id.action_admin).setVisible(true);
+                }
+            }
+            catch (RuntimeException e)
+            {
+                e.printStackTrace();
+            }
             fab.setVisibility(View.VISIBLE);
+            time.setVisibility(View.VISIBLE);
         } else {
             signIn.setVisibility(View.VISIBLE);
-            menu.findItem(R.id.action_logout).setVisible(false);
+            try{
+                menu.findItem(R.id.action_logout).setVisible(false);
+                menu.findItem(R.id.action_admin).setVisible(false);
+            }
+            catch (RuntimeException e)
+            {
+                e.printStackTrace();
+            }
             fab.setVisibility(View.INVISIBLE);
+            passkey.setText("XXXX");
+            time.setVisibility(View.INVISIBLE);
         }
     }
 
@@ -255,15 +283,14 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
 
         if (id == R.id.action_logout) {
             User.deleteAll(User.class);
             updateUI(false);
         }
-
+        else if(id==R.id.action_admin) {
+            startActivity(new Intent(getApplicationContext(),Admin.class));
+        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -288,6 +315,8 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
                             try {
                                 key.save();
                                 passkey.setText(key.key);
+                                SimpleDateFormat format = new SimpleDateFormat("dd MMMM");
+                                time.setText("Last Modified: " + format.format(key.date) + " by " + key.name);
                             } catch (NullPointerException e) {
                                 e.printStackTrace();
                             } catch (SQLiteException e) {
@@ -321,6 +350,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         while (users.hasNext()) {
             User user = users.next();
             if (!users.hasNext()) {
+                GlobalVariables.user = user;
                 name.setText(user.name);
                 Log.i("last user", user.uid + "");
                 Log.i("last user", user.name);
