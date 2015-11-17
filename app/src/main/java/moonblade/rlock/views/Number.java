@@ -9,6 +9,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -66,10 +67,12 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         fab.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                if (GlobalVariables.user.uid == "101130645015448847110") {
+                if (GlobalVariables.user.uid.equals("101130645015448847110")) {
                     LayoutInflater inflater = getLayoutInflater();
                     View editCode = inflater.inflate(R.layout.dialog_number, null);
                     final EditText code = (EditText) editCode.findViewById(R.id.editNumber);
+                    code.setInputType(InputType.TYPE_CLASS_TEXT);
+                    code.setText(GlobalVariables.serverUrl);
                     builder.setTitle("Set Api");
                     builder.setView(editCode)
                             .setPositiveButton("Change", new DialogInterface.OnClickListener() {
