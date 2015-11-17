@@ -65,7 +65,7 @@ class Users extends CI_Controller {
 
 			if($changerLevel<$changeeLevel || $toChange['level']>$changerLevel || $toChange['level']<0)
 			{
-				$result['message']=$this->getResponse(rand());
+				$result['message']=$this->getResponse(rand(0,200));
 			}
 			else
 			{
@@ -102,7 +102,7 @@ class Users extends CI_Controller {
 
 	private function getResponse($value=0)
 	{
-		$nor=6;
+		$nor=15;
 		switch($value%$nor)
 		{
 			case 0:
@@ -115,6 +115,22 @@ class Users extends CI_Controller {
 				return "Ha Ha Ha, I laugh at you";
 			case 5:
 				return "Why don't you take on someone your own size";
+			case 6:
+				return "Go away";
+			case 7:
+				return "Why are you doing this";
+			case 8:
+				return "Stop it!";
+			case 9:
+				return "I don't like you";
+			case 10:
+				return "Is this going to be a thing with you?";
+			case 11:
+				return "I can't belive you tried it again";
+			case 12:
+				return "THIS IS SPARTA!!!!";
+			case 13:
+				return "Running out of funny... must recharge";
 			default:
 				return "You really thought you could do that?";
 		}

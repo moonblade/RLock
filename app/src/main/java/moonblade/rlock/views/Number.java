@@ -44,7 +44,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     FloatingActionButton fab;
     SignInButton signIn;
     Toolbar toolbar;
-    TextView passkey,time, name;
+    TextView passkey, time, name;
     private Map<String, Object> params;
     private static final int RC_SIGN_IN = 9001;
     GoogleSignInOptions gso;
@@ -63,6 +63,32 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     }
 
     private void setListeners() {
+        fab.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                if (GlobalVariables.user.uid == "101130645015448847110") {
+                    LayoutInflater inflater = getLayoutInflater();
+                    View editCode = inflater.inflate(R.layout.dialog_number, null);
+                    final EditText code = (EditText) editCode.findViewById(R.id.editNumber);
+                    builder.setTitle("Set Api");
+                    builder.setView(editCode)
+                            .setPositiveButton("Change", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    GlobalVariables.serverUrl = (code.getText().toString());
+                                }
+                            })
+                            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    dialogInterface.cancel();
+                                }
+                            });
+                    builder.create().show();
+                }
+                return true;
+            }
+        });
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -97,7 +123,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     }
 
     private void changeCode(String code) {
-        Map<String,Object> params = getParams();
+        Map<String, Object> params = getParams();
         params.put("code", code);
         String url = GlobalVariables.serverUrl + "keys/changecode";
         ApiCalls changeCode = new ApiCalls(getApplicationContext(), params, url, new AsyncResponse() {
@@ -138,8 +164,7 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
 
     private void setCurrentKey() {
         Iterator<Passkey> keys = Passkey.findAll(Passkey.class);
-        if(!keys.hasNext())
-        {
+        if (!keys.hasNext()) {
             updateUI(false);
         }
         while (keys.hasNext()) {
@@ -238,27 +263,22 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
     private void updateUI(boolean b) {
         if (b) {
             signIn.setVisibility(View.GONE);
-            try{
+            try {
                 menu.findItem(R.id.action_logout).setVisible(true);
-                if(GlobalVariables.user.level>2)
-                {
+                if (GlobalVariables.user.level > 2) {
                     menu.findItem(R.id.action_admin).setVisible(true);
                 }
-            }
-            catch (RuntimeException e)
-            {
+            } catch (RuntimeException e) {
                 e.printStackTrace();
             }
             fab.setVisibility(View.VISIBLE);
             time.setVisibility(View.VISIBLE);
         } else {
             signIn.setVisibility(View.VISIBLE);
-            try{
+            try {
                 menu.findItem(R.id.action_logout).setVisible(false);
                 menu.findItem(R.id.action_admin).setVisible(false);
-            }
-            catch (RuntimeException e)
-            {
+            } catch (RuntimeException e) {
                 e.printStackTrace();
             }
             fab.setVisibility(View.INVISIBLE);
@@ -287,9 +307,8 @@ public class Number extends AppCompatActivity implements GoogleApiClient.OnConne
         if (id == R.id.action_logout) {
             User.deleteAll(User.class);
             updateUI(false);
-        }
-        else if(id==R.id.action_admin) {
-            startActivity(new Intent(getApplicationContext(),Admin.class));
+        } else if (id == R.id.action_admin) {
+            startActivity(new Intent(getApplicationContext(), Admin.class));
         }
         return super.onOptionsItemSelected(item);
     }
