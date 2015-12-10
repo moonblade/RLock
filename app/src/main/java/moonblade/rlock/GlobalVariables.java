@@ -7,6 +7,6 @@ import moonblade.rlock.models.User;
  */
 public class GlobalVariables {
 //    public static String serverUrl = "http://192.168.0.41/Rlock/";
-    public static String serverUrl = "http://192.168.1.20/Rlock/";
+    public static String serverUrl = "http://rlock.robocet.com/";
     public static User user = null;
 }
